@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='us-ascii'?>
+<annotation>
+	<folder>no_helmet</folder>
+	<filename>00019.jpg</filename>
+	<path>C:\Users\&#23609;&#20197;&#40527;\Desktop\&#22836;&#30420;1\no_helmet\00019.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>416</width>
+		<height>416</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>target</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>127</xmin>
+			<ymin>100</ymin>
+			<xmax>270</xmax>
+			<ymax>380</ymax>
+		</bndbox>
+	</object>
+</annotation>
