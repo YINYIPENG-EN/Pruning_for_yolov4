@@ -1,9 +1,14 @@
 # 本项目yolov4代码参考:https://www.bilibili.com/video/BV1Q54y1D7vj?spm_id_from=333.999.0.0
 # 剪枝paper参考:Pruning Filters for Efficient ConvNets
 
+**本项目只是负责把框架搭建起来，没有进行重训练的微调或者去研究应该剪哪里比较好，需要自己去研究**
+
 pytorch 1.7.0(低版本应该也是可以的)
+
 torchvision 0.8.0
+
 torch_pruning
+
 
 # 安装包
 pip install torch_pruning
@@ -16,28 +21,30 @@ import torch_pruning as tp
 # 模型的实例化(针对已经训练好的模型)
 model = torch.load('权重路径')
 model.eval()
-# ---------------对于非单层卷积的通道剪枝(不用看3.1)------------
+# ---------------对于非单层卷积的通道剪枝(不用看3.1)----
 #                剪枝之前统计一下模型的参数量
-# num_params_before_pruning = tp.utils.count_params(model)
-#
 # --------------------------------------------------------
+num_params_before_pruning = tp.utils.count_params(model)
 
-# 1. setup strategy (L1 Norm) 计算每个通道的权重
+**1. setup strategy (L1 Norm) 计算每个通道的权重**
 strategy = tp.strategy.L1Strategy()
 
-# 2.建立依赖图(与torch.jit很像)
+**2.建立依赖图(与torch.jit很像)**
 DG = tp.DependencyGraph()
 DG = DG.build_dependency(model, example_inputs=torch.randn(1, 3, input_size[0], input_size[1])) # input_size是网络的输入大小
 
-#3.分情况(1.单个卷积进行剪枝 2.层进行剪枝)
-# 3.1 单个卷积(会返回要剪枝的通道索引，这个通道是索引是根据L1正则得到的)
+**3.分情况(1.单个卷积进行剪枝 2.层进行剪枝)**
+
+**3.1 单个卷积(会返回要剪枝的通道索引，这个通道是索引是根据L1正则得到的)**
+
 pruning_idxs = strategy(model.conv1.weight, amount=0.4)  # model.conv1.weigth是对特定的卷积进行剪枝,amount是剪枝率
-# 将根据依赖图收集所有受影响的层，将它们传播到整个图上，然后提供一个PruningPlan正确修剪模型的方法。
+
+**将根据依赖图收集所有受影响的层，将它们传播到整个图上，然后提供一个PruningPlan正确修剪模型的方法。**
 pruning_plan = DG.get_pruning_plan( model.conv1, tp.prune_conv, idxs=pruning_idxs )
 pruning_plan.exec()
 torch.save(model, 'pru_model.pth')
 
-# 3.2 层剪枝(需要筛选出不需要剪枝的层，比如yolo需要把头部的预测部分取出来，这个是不需要剪枝的)
+**3.2 层剪枝(需要筛选出不需要剪枝的层，比如yolo需要把头部的预测部分取出来，这个是不需要剪枝的)**
 excluded_layers = list(model.model[-1].modules())
 for m in model.modules():
     if isinstance(m, nn.Conv2d) and m not in excluded_layers:
@@ -45,10 +52,12 @@ for m in model.modules():
         print(pruning_plan)
         # 执行剪枝
         pruning_plan.exec()
-# 如果想看一下剪枝以后的参数，可以运行：
+        
+**如果想看一下剪枝以后的参数，可以运行：**
 num_params_after_pruning = tp.utils.count_params(model)
 print( "  Params: %s => %s"%( num_params_before_pruning, num_params_after_pruning))
-# 剪枝完以后模型的保存(不要用torch.save(model.state_dict(),...))
+
+**剪枝完以后模型的保存(不要用torch.save(model.state_dict(),...))**
 torch.save(model, 'pruning_model.pth')
 
 ------------------------------------------------------------------------------------
@@ -69,3 +78,7 @@ FPS测试，将mode改为fps[我的硬件是英伟达1650,cuda10.2]
 
 我尝试了一下对主干剪枝，发现精度损失严重，大家想剪哪部分可以自己去尝试，我只是把框架给搭建起来方便大家的使用，对最终的效果不保证，需要自己去炼丹。
 可以训练自己的模型，剪枝后应该对模型进行一个重训练的微调提升准确率，这部分代码我还没有加入进去，可以自己把剪枝后的权重放训练代码中微调一下就行。后期有时间会加入微调训练部分。
+
+权重链接：
+链接：https://pan.baidu.com/s/1neHeyWsm_SQ-ZrFwDZUrUA 
+提取码：yypn
