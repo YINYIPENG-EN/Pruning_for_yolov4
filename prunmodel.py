@@ -6,10 +6,10 @@ from nets.yolo import YoloBody
 # 如果权重没有保存图结构，即训练完是用torch.save(model.state_dict()，'.pth')保存的,可以将下面的注释掉
 
 
-def save_whole_model(weights_path):
+def save_whole_model(weights_path, num_classes):
 
     anchors_mask = [[6, 7, 8], [3, 4, 5], [0, 1, 2]]
-    model = YoloBody(anchors_mask, 80)
+    model = YoloBody(anchors_mask, num_classes)  # 这里需要根据自己的类数量修改
     model_dict = model.state_dict()
     predtrained_dict = torch.load(weights_path)
     predtrained_dict = {k: v for k, v in predtrained_dict.items() if predtrained_dict.keys()==model_dict.keys()}
@@ -17,6 +17,7 @@ def save_whole_model(weights_path):
     model.load_state_dict(model_dict)
     model.eval()
     torch.save(model, './model_data/whole_model.pth')
+    print("保存完成\n")
 
 def Conv_pruning(whole_model_weights):
     model = torch.load(whole_model_weights)  # 模型的加载
@@ -43,6 +44,8 @@ def Conv_pruning(whole_model_weights):
             # 4. execute this plan (prune the model)
             pruning_plan.exec()
     torch.save(model, './model_data/Conv_pruning.pth')
+    print("剪枝完成\n")
+
 
 def layer_pruning(whole_model_weights):
     model = torch.load(whole_model_weights)  # 模型的加载
@@ -54,34 +57,18 @@ def layer_pruning(whole_model_weights):
     num_params_before_pruning = tp.utils.count_params(model)
 
     # 可以对照yolov4结构进行剪枝
-    included_layers = list(model.conv2.modules())  # 对SPP网络后出来的三个卷积剪枝
-
-    # 尽量不要对头部剪枝
-    #excluded_layers = list((model.yolo_head1[-1].modules(),model.yolo_head2[-1].modules(),model.yolo_head3[-1].modules()))
-
+    included_layers = list((model.backbone.modules()))  # 对主干进行剪枝
     for m in model.modules():
         if isinstance(m, nn.Conv2d) and m in included_layers:
-            pruning_plan = DG.get_pruning_plan(m,tp.prune_conv, idxs=strategy(m.weight, amount=0.4))
+            pruning_plan = DG.get_pruning_plan(m, tp.prune_conv, idxs=strategy(m.weight, amount=0.5))
             print(pruning_plan)
             # 执行剪枝
             pruning_plan.exec()
     # 获得剪枝以后的参数量
     num_params_after_pruning = tp.utils.count_params(model)
     # 输出一下剪枝前后的参数量
-    print( "  Params: %s => %s"%( num_params_before_pruning, num_params_after_pruning))
+    print( "  Params: %s => %s\n"%( num_params_before_pruning, num_params_after_pruning))
     # 剪枝完以后模型的保存(不要用torch.save(model.state_dict(),...))
     torch.save(model, 'model_data/layer_pruning.pth')
+    print("剪枝完成\n")
 
-if __name__ == '__main__':
-    weights_path = r'./model_data/yolo4_weights.pth'  # 只有权重
-    whole_model_weights = r'./model_data/whole_model.pth'  # 完整的模型
-
-    # --------------保存完整的模型---------------------
-    save_whole_model(weights_path)
-    # ----------------------------------------------
-
-    # ----------------特定卷积的剪枝-------------------
-    Conv_pruning(whole_model_weights)
-
-    # ---------------对某部分进行剪枝------------------
-    layer_pruning(whole_model_weights)

@@ -10,8 +10,9 @@ from PIL import Image
 
 from pruning_yolo import YOLO
 
-if __name__ == "__main__":
-    yolo = YOLO()
+def Predict(opt):
+
+    yolo = YOLO(opt)
     # ----------------------------------------------------------------------------------------------------------#
     #   mode用于指定测试的模式：
     #   'predict'表示单张图片预测，如果想对预测过程进行修改，如保存图片，截取对象等，可以先看下方详细的注释
@@ -19,7 +20,7 @@ if __name__ == "__main__":
     #   'fps'表示测试fps，使用的图片是img里面的street.jpg，详情查看下方注释。
     #   'dir_predict'表示遍历文件夹进行检测并保存。默认遍历img文件夹，保存img_out文件夹，详情查看下方注释。
     # ----------------------------------------------------------------------------------------------------------#
-    mode = "fps"
+
     # -------------------------------------------------------------------------#
     #   crop指定了是否在单张图片预测后对目标进行截取
     #   crop仅在mode='predict'时有效
@@ -34,8 +35,10 @@ if __name__ == "__main__":
     #   video_path、video_save_path和video_fps仅在mode='video'时有效
     #   保存视频时需要ctrl+c退出或者运行到最后一帧才会完成完整的保存步骤。
     # ----------------------------------------------------------------------------------------------------------#
-    video_path = 0
-    video_save_path = ""
+    video_path = opt.video_path
+    if video_path == '0':
+        video_path = 0
+    video_save_path = opt.output
     video_fps = 25.0
     # -------------------------------------------------------------------------#
     #   test_interval用于指定测量fps的时候，图片检测的次数
@@ -50,7 +53,7 @@ if __name__ == "__main__":
     dir_origin_path = "img/"
     dir_save_path = "img_out/"
 
-    if mode == "predict":
+    if opt.image:
         '''
         1、如果想要进行检测完的图片的保存，利用r_image.save("img.jpg")即可保存，直接在predict.py里进行修改即可。 
         2、如果想要获得预测框的坐标，可以进入yolo.detect_image函数，在绘图部分读取top，left，bottom，right这四个值。
@@ -70,7 +73,7 @@ if __name__ == "__main__":
                 r_image = yolo.detect_image(image, crop=crop)
                 r_image.show()
 
-    elif mode == "video":
+    elif opt.video:
         capture = cv2.VideoCapture(video_path)
         if video_save_path != "":
             fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -117,12 +120,13 @@ if __name__ == "__main__":
             out.release()
         cv2.destroyAllWindows()
 
-    elif mode == "fps":
+    elif opt.fps:
+
         img = Image.open('img/street.jpg')
         tact_time = yolo.get_FPS(img, test_interval)
         print(str(tact_time) + ' seconds, ' + str(1 / tact_time) + 'FPS, @batch_size 1')
 
-    elif mode == "dir_predict":
+    elif opt.dir_predict:
         import os
 
         from tqdm import tqdm

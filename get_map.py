@@ -6,9 +6,9 @@ from tqdm import tqdm
 
 from utils.utils import get_classes
 from utils.utils_map import get_coco_map, get_map
-from yolo import YOLO
+from pruning_yolo import YOLO
 
-if __name__ == "__main__":
+def Get_mAP(opt):
     '''
     Recall和Precision不像AP是一个面积的概念，在门限值不同时，网络的Recall和Precision值是不同的。
     map计算结果中的Recall和Precision代表的是当预测时，门限置信度为0.5时，所对应的Recall和Precision值。
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     #   此处的classes_path用于指定需要测量VOC_map的类别
     #   一般情况下与训练和预测所用的classes_path一致即可
     #-------------------------------------------------------#
-    classes_path    = 'model_data/voc_classes.txt'
+    classes_path    = opt.classes_path
     #-------------------------------------------------------#
     #   MINOVERLAP用于指定想要获得的mAP0.x
     #   比如计算mAP0.75，可以设定MINOVERLAP = 0.75。
@@ -64,7 +64,8 @@ if __name__ == "__main__":
 
     if map_mode == 0 or map_mode == 1:
         print("Load model.")
-        yolo = YOLO(confidence = 0.001, nms_iou = 0.5)
+        #yolo = YOLO(confidence = 0.001, nms_iou = 0.5)
+        yolo = YOLO(opt)
         print("Load model done.")
 
         print("Get predict result.")
