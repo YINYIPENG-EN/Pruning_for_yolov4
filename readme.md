@@ -18,6 +18,16 @@ pytorch 1.7.0(低版本应该也是可以的)
 torchvision 0.8.0
 torch_pruning
 
+**2022-06-20更新说明：**
+
+上个版本中训练自己的数据集默认采用torch.save(model,'xxx.pth')保存，在剪枝的时候发生了报错(这是由于**分布式训练**导致的)，因此在utils/utils_fit.py模型保存方式为model.state_dict()
+
+训练完在自己的数据集后在利用save_whole_model函数将模型保存。
+
+修改了剪枝微调训练的一些bug问题
+
+------------------------------------------------------
+
 # 安装包
 ```python
 pip install torch_pruning
