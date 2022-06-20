@@ -10,105 +10,7 @@ from utils.dataloader import YoloDataset, yolo_dataset_collate
 from utils.utils import get_anchors, get_classes
 from utils.utils import get_lr
 import tqdm
-
-def fit_one_epoch(model, yolo_loss, loss_history, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, cuda, save_period, save_dir):
-    loss        = 0
-    val_loss    = 0
-
-    model.train()
-    print('Start Train')
-    with tqdm(total=epoch_step, desc=f'Epoch {epoch + 1}/{Epoch}', postfix=dict, mininterval=0.3) as pbar:
-        for iteration, batch in enumerate(gen):
-            if iteration >= epoch_step:
-                break
-
-            images, targets = batch[0], batch[1]
-            with torch.no_grad():
-                if cuda:
-                    images  = torch.from_numpy(images).type(torch.FloatTensor).cuda()
-                    targets = [torch.from_numpy(ann).type(torch.FloatTensor).cuda() for ann in targets]
-                else:
-                    images  = torch.from_numpy(images).type(torch.FloatTensor)
-                    targets = [torch.from_numpy(ann).type(torch.FloatTensor) for ann in targets]
-            #----------------------#
-            #   清零梯度
-            #----------------------#
-            optimizer.zero_grad()
-            #----------------------#
-            #   前向传播
-            #----------------------#
-            outputs         = model(images)
-
-            loss_value_all  = 0
-            #----------------------#
-            #   计算损失
-            #----------------------#
-            # l=0,1,2,outputs[l]是特征层，targets是标签
-            # targets是一个列表，列表长度=biatchsize,5列，前四列是边界框，最后一列是类的标签
-
-            for l in range(len(outputs)):
-                loss_item = yolo_loss(l, outputs[l], targets)
-                loss_value_all  += loss_item
-            loss_value = loss_value_all
-
-            #----------------------#
-            #   反向传播
-            #----------------------#
-            loss_value.backward()
-            optimizer.step()
-
-            loss += loss_value.item()
-
-            pbar.set_postfix(**{'loss'  : loss / (iteration + 1),
-                                'lr'    : get_lr(optimizer)})
-            pbar.update(1)
-
-    print('Finish Train')
-
-    model.eval()
-    print('Start Validation')
-    with tqdm(total=epoch_step_val, desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3) as pbar:
-        for iteration, batch in enumerate(gen_val):
-            if iteration >= epoch_step_val:
-                break
-            images, targets = batch[0], batch[1]
-            with torch.no_grad():
-                if cuda:
-                    images  = torch.from_numpy(images).type(torch.FloatTensor).cuda()
-                    targets = [torch.from_numpy(ann).type(torch.FloatTensor).cuda() for ann in targets]
-                else:
-                    images  = torch.from_numpy(images).type(torch.FloatTensor)
-                    targets = [torch.from_numpy(ann).type(torch.FloatTensor) for ann in targets]
-                #----------------------#
-                #   清零梯度
-                #----------------------#
-                optimizer.zero_grad()
-                #----------------------#
-                #   前向传播
-                #----------------------#
-                outputs         = model(images)
-
-                loss_value_all  = 0
-                #----------------------#
-                #   计算损失
-                #----------------------#
-                for l in range(len(outputs)):
-                    loss_item = yolo_loss(l, outputs[l], targets)
-                    loss_value_all  += loss_item
-                loss_value  = loss_value_all
-
-            val_loss += loss_value.item()
-            pbar.set_postfix(**{'val_loss': val_loss / (iteration + 1)})
-            pbar.update(1)
-
-    print('Finish Validation')
-
-    loss_history.append_loss(epoch + 1, loss / epoch_step, val_loss / epoch_step_val)
-    print('Epoch:'+ str(epoch + 1) + '/' + str(Epoch))
-    print('Total Loss: %.3f || Val Loss: %.3f ' % (loss / epoch_step, val_loss / epoch_step_val))
-    if (epoch + 1) % save_period == 0 or epoch + 1 == Epoch:
-        torch.save(model, os.path.join(save_dir, "ep%03d-loss%.3f-val_loss%.3f.pth" % (epoch + 1, loss / epoch_step, val_loss / epoch_step_val)))
-
+from utils.utils_fine import fit_one_epoch
 
 def Train_fine(opt):
     #---------------------------------#
@@ -265,14 +167,13 @@ def Train_fine(opt):
     #   创建yolo模型  剪枝后pth已经包含了权值和网络结构，所以直接加载即可
     #------------------------------------------------------#
     model = torch.load(model_path)
-
     yolo_loss    = YOLOLoss(anchors, num_classes, input_shape, Cuda, anchors_mask, label_smoothing, focal_loss, alpha, gamma)
     loss_history = LossHistory(save_dir, model, input_shape=input_shape)
     
     model.train()
     if Cuda:
-        model = torch.nn.DataParallel(model)
-        cudnn.benchmark = True
+        # model = torch.nn.DataParallel(model)
+        # cudnn.benchmark = True
         model = model.cuda()
 
     #---------------------------#

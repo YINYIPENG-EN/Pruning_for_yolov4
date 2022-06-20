@@ -24,7 +24,7 @@ if __name__ == "__main__":
     pargse.add_argument('--fps', action='store_true', default=False, help='FPS test')
     pargse.add_argument('--dir_predict', action='store_true', default=False, help='dir predict')
     pargse.add_argument('--classes_path', type=str, default='model_data/coco_classes.txt', help='classes txt file path')
-    pargse.add_argument('--input_shape', type=int, default='608', help='input shape')
+    pargse.add_argument('--input_shape', type=int, default=608, help='input shape')
     pargse.add_argument('--mAP', action='store_true', default=False, help='get mAP')
 
     pargse.add_argument('--train', action='store_true', default=False, help='model train')
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         # eg:python Yolov4.py --save_whole_model --num_classes 80 --weights model_data/yolo4_weights.pth
         save_whole_model(opt.weights, opt.num_classes)
 
-    if opt.get_mAP:
+    if opt.mAP:
         # 详细的使用说明可进行函数查看
         Get_mAP(opt)
 
